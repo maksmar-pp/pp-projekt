@@ -3,7 +3,7 @@
 #
 
 # Dodaj źródło do pliku wykonywalnego tego projektu.
-add_executable (pp-projekt "pp-projekt.cpp" "pp-projekt.h")
+add_executable (pp-projekt "pp-projekt.cpp" )
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET pp-projekt PROPERTY CXX_STANDARD 20)

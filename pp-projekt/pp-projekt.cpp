@@ -2,20 +2,35 @@
 //
 
 #include <iostream>
+#include <string>
+#include <sstream>
 #include "format"
 #include "concepts"
 template <typename T, typename Pred = decltype([](const T&) {return true;}) >
 requires (std::integral<T> || std::floating_point<T> || std::same_as<T, std::string>)
 	&& std::predicate<Pred, const T&>
-T input(std::string_view prompt, std::string_view error = "Błąd \n", Pred predicate = {}) {
-	T buff;
+T input(std::string_view prompt, std::string_view errorMessage = "Wrong data. Try one more time \n", Pred predicate = {}) {
+		std::string line;
 	while (true) {
 		std::cout << prompt;
-		if (!(std::cin >>buff)) {
-			std::cout << error;
-			continue;
+		if (!(std::getline(std::cin, line))) {
+			return T{};
 		}
-		return buff;
+		T value{};
+
+		if constexpr (std::same_as<T, std::string>) {
+			value = line;
+			if (predicate(value)) return value;
+		}
+		else {
+			std::stringstream stream(line);
+			char residual;
+
+			if ((stream >> value) && !(stream >> residual)) {
+				if (predicate(value)) return value;
+			}
+		}
+		std::cout << errorMessage;
 	}
 }
 
@@ -34,7 +49,9 @@ void showPopulation(int day, int susceptible, int infected, int recovered);
 int showMenu();
 
 void simulateDay(int& susceptible, int& infected, int& recovered, int& day, double infectionRate, double recoveryRate);
-	bool checkPopulation(int susceptalbe, int infected, int recovered);
+
+bool checkPopulation(int susceptalbe, int infected, int recovered);
+void modifyParameters(int& infectionRate, int& recoveryRate);
 int main()
 {
 	int susceptible = 80;
@@ -48,6 +65,8 @@ int main()
 	while (true) {
 
 	showPopulation(day, susceptible, infected, recovered);
+
+
 	auto choice = showMenu();
 	switch (--choice) {
 	case 0: 
@@ -55,9 +74,10 @@ int main()
 		continue;
 		break;
 	case 1: 
-
+		std::cout << "zmieninaie danych \n";
 		break;
 	case 2: 
+		std::cout << "Exiting... \n";
 		exit(0);
 		break;
 	default: {
@@ -72,20 +92,21 @@ void showPopulation(int day, int susceptible, int infected, int recovered) {
 
 	int total = susceptible + infected + recovered;
 
-	std::cout << std::format(
-		"Day: {} \n"
-		"Susceptible: {} \n"
-		"Infected: {} \n"
-		"Recovered: {} \n"
-		"Total: {} \n",
-		day, susceptible, infected, recovered, total);
+	std::cout <<  "Day: " << day << "\n"
+		<< "Susceptible: " << susceptible << " \n"
+		<< "Infected: " << infected << "\n"
+		<< "Recovered: " << recovered << "\n"
+		<< "Total: " << total << " \n";
 }
 int showMenu() {
-	std::cout << "===MENU== \n";
-	for (int i = 0; i < std::size(menu); ++i) {
+	size_t menu_length = std::size(menu);
+	std::cout << "\n ===MENU== \n";
+	for (int i = 0; i < menu_length; ++i) {
 		std::cout << i + 1 << ". " << menu[i] << "\n";
 	}
-	auto choice = input<int>("Your choice: ");
+	auto choice = input<int>("Your choice: ", "", [menu_length](int i) {
+		return i >= 0 && i < menu_length;
+		});
 
 	return choice;
 }
@@ -112,7 +133,7 @@ void simulateDay(int& susceptible, int& infected, int& recovered, int& day, doub
 
 	}
 	else {
-		std::cout << "bład symulacji";
+		std::cout << "bład symulacji \n" ;
 	}
 }
 bool checkPopulation(int susceptalbe, int infected, int recovered) {
@@ -122,4 +143,9 @@ bool checkPopulation(int susceptalbe, int infected, int recovered) {
 		return false;
 
 	return true;
+}
+
+void modifyParameters(int& infectionRate, int& recoveryRate) {
+	auto newInfectionRate = input<double>("");
+
 }

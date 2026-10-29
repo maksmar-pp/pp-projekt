@@ -4,8 +4,12 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include "format"
-#include "concepts"
+#include <format>
+#include <concepts>
+#include <cmath>
+#include <algorithm>
+
+
 template <typename T, typename Pred = decltype([](const T&) {return true;}) >
 requires (std::integral<T> || std::floating_point<T> || std::same_as<T, std::string>)
 	&& std::predicate<Pred, const T&>
@@ -51,7 +55,10 @@ int showMenu();
 void simulateDay(int& susceptible, int& infected, int& recovered, int& day, double infectionRate, double recoveryRate);
 
 bool checkPopulation(int susceptalbe, int infected, int recovered);
-void modifyParameters(int& infectionRate, int& recoveryRate);
+
+void modifyParameters(double& infectionRate, double& recoveryRate);
+
+
 int main()
 {
 	int susceptible = 80;
@@ -62,29 +69,31 @@ int main()
 
 	double infectionRate = 0.20;
 	double recoveryRate = 0.10;
-	while (true) {
 
-	showPopulation(day, susceptible, infected, recovered);
+	bool running = true;
+	while (running) {
+
+		showPopulation(day, susceptible, infected, recovered);
 
 
-	auto choice = showMenu();
-	switch (--choice) {
-	case 0: 
-		simulateDay(susceptible, infected, recovered, day, infectionRate, recoveryRate);
-		continue;
-		break;
-	case 1: 
-		std::cout << "zmieninaie danych \n";
-		break;
-	case 2: 
-		std::cout << "Exiting... \n";
-		exit(0);
-		break;
-	default: {
-		std::cout << "wrong choice \n";
-		continue;
-	}
-	}
+		auto choice = showMenu();
+		switch (choice) {
+			case 1: 
+				simulateDay(susceptible, infected, recovered, day, infectionRate, recoveryRate);
+				continue;
+				break;
+			case 2: 
+				modifyParameters(infectionRate, recoveryRate);
+				break;
+			case 3: 
+				std::cout << "Exiting... \n";
+				running = false;
+				break;
+			default: {
+				std::cout << "Wrong choice \n";
+				break;
+			}
+		}
 	}
 	return 0;
 }
@@ -99,41 +108,45 @@ void showPopulation(int day, int susceptible, int infected, int recovered) {
 		<< "Total: " << total << " \n";
 }
 int showMenu() {
-	size_t menu_length = std::size(menu);
+	const int menu_length = static_cast<int>(std::size(menu));
+
+
 	std::cout << "\n ===MENU== \n";
 	for (int i = 0; i < menu_length; ++i) {
 		std::cout << i + 1 << ". " << menu[i] << "\n";
 	}
-	auto choice = input<int>("Your choice: ", "", [menu_length](int i) {
-		return i >= 0 && i < menu_length;
-		});
+	return input<int>("Your choice: ", "", [menu_length](int choice) {
+		return choice >= 1 &&  choice <= menu_length;
+	});
 
-	return choice;
 }
 
 
 
 void simulateDay(int& susceptible, int& infected, int& recovered, int& day, double infectionRate, double recoveryRate) {
-	int prevInfected = infected;
-	int prevSusceptible = susceptible;
-	int prevRecovered = recovered;
+const	int prevInfected = infected;
+const 	int prevSusceptible = susceptible;
+const 	int prevRecovered = recovered;
 
-	int newInfected = static_cast<int>( std::floor(prevSusceptible * infectionRate));
+	int newInfected = static_cast<int>( std::floor(prevInfected * infectionRate));
 	int newRecovered =static_cast<int>(std::floor(prevInfected * recoveryRate));
+
+
+	newInfected = std::min(newInfected, prevSusceptible);
+	newRecovered = std::min(newRecovered, prevInfected);
 
 	int  tempSusceptible = prevSusceptible - newInfected;
 	int tempInfected = prevInfected + newInfected - newRecovered;
-	int tempRecovered = prevRecovered + recovered;
+	int tempRecovered = prevRecovered + newRecovered;
 
 	if (checkPopulation(tempSusceptible, tempInfected, tempRecovered)) {
 		susceptible = tempSusceptible;
 		infected = tempInfected;
 		recovered = tempRecovered;
 		++day;
-
 	}
 	else {
-		std::cout << "bład symulacji \n" ;
+		std::cout << "Simulation error. Wrong population\n";
 	}
 }
 bool checkPopulation(int susceptalbe, int infected, int recovered) {
@@ -145,7 +158,28 @@ bool checkPopulation(int susceptalbe, int infected, int recovered) {
 	return true;
 }
 
-void modifyParameters(int& infectionRate, int& recoveryRate) {
-	auto newInfectionRate = input<double>("");
+void modifyParameters(double& infectionRate, double& recoveryRate) {
+	std::cout << "\n--- Change Model Parameters ---\n";
+
+	auto validRate = [](double rate) -> bool {
+			return rate >= 0.0 && rate <= 1.0;
+		};
+
+	double newInfection = input<double>(
+		"Enter infection rate (0-1): ",
+		"Invalid rate! Must be between 0.0 and 1.0.\n",
+		validRate
+	);
+
+	double newRecovery = input<double>(
+		"Enter recovery rate (0-1): ",
+		"Invalid rate! Must be between 0.0 and 1.0.\n",
+		validRate
+	);
+
+	infectionRate = newInfection;
+	recoveryRate = newRecovery;
+
+	std::cout << "Parameters updated successfully\n";
 
 }

@@ -40,7 +40,7 @@ T input(std::string_view prompt, std::string_view errorMessage = "Wrong data. Tr
 }
 
 
-
+const int MAX_DAYS = 101;
 
 
 
@@ -48,8 +48,20 @@ void showPopulation(int day, int susceptible, int infected, int recovered);
 
 int showMenu(const std::string menu[], int size);
 
+void showSimulationHistory(
+	int populationHistory[MAX_DAYS][3],
+	int dailyNewInfections[MAX_DAYS],
+	int dailyRecoveries[MAX_DAYS],
+	int day
+);
 
-void simulateDay(int& susceptible, int& infected, int& recovered, int& day, double infectionRate, double recoveryRate, int populationHistory[101][3]);
+void simulateDay(
+	int& susceptible, int& infected, int& recovered, int& day, 
+	double infectionRate, double recoveryRate, 
+	int populationHistory[MAX_DAYS][3], 
+	int dailyNewInfections[MAX_DAYS],
+	int dailyRecoveries[MAX_DAYS]
+);
 
 bool checkPopulation(int susceptalbe, int infected, int recovered);
 
@@ -61,9 +73,9 @@ int main()
 	const std::string menu[] = {
 		"Simulate next day",
 		"Change model parameters",
+		"Show simulation history",
 		"Exit",
 	};
-	const int MAX_DAYS = 101;
 	const int menu_size = sizeof(menu) / sizeof(menu[0]);
 
 	int susceptible = 80;
@@ -89,13 +101,21 @@ int main()
 		auto choice = showMenu(menu, menu_size);
 		switch (choice) {
 			case 1: 
-				simulateDay(susceptible, infected, recovered, day, infectionRate, recoveryRate, populationHistory);
+				simulateDay(
+					susceptible, infected, recovered, day, 
+					infectionRate, recoveryRate,
+					populationHistory,
+					dailyNewInfections,
+					dailyRecoveries);
 				continue;
 				break;
 			case 2: 
 				modifyParameters(infectionRate, recoveryRate);
 				break;
-			case 3: 
+			case 3:
+				showSimulationHistory(populationHistory, dailyNewInfections, dailyRecoveries, day);
+				break;
+			case 4: 
 				std::cout << "Exiting... \n";
 				running = false;
 				break;
@@ -144,10 +164,16 @@ int showMenu(const std::string menu[], int size) {
 
 
 
-void simulateDay(int& susceptible, int& infected, int& recovered, int& day, double infectionRate, double recoveryRate, int populationHistory[101][3]) {
-const	int prevInfected = infected;
-const 	int prevSusceptible = susceptible;
-const 	int prevRecovered = recovered;
+void simulateDay(
+	int& susceptible, int& infected, int& recovered, int& day, 
+	double infectionRate, double recoveryRate,
+	int populationHistory[101][3],
+	int dailyNewInfections[MAX_DAYS],
+	int dailyRecoveries[MAX_DAYS]
+) {
+	const int prevInfected = infected;
+	const int prevSusceptible = susceptible;
+	const int prevRecovered = recovered;
 
 	int newInfected = static_cast<int>(std::floor(prevInfected * infectionRate));
 	int newRecovered =static_cast<int>(std::floor(prevInfected * recoveryRate));
@@ -156,7 +182,7 @@ const 	int prevRecovered = recovered;
 	newInfected = std::min(newInfected, prevSusceptible);
 	newRecovered = std::min(newRecovered, prevInfected);
 
-	int  tempSusceptible = prevSusceptible - newInfected;
+	int tempSusceptible = prevSusceptible - newInfected;
 	int tempInfected = prevInfected + newInfected - newRecovered;
 	int tempRecovered = prevRecovered + newRecovered;
 
@@ -168,7 +194,8 @@ const 	int prevRecovered = recovered;
 		populationHistory[day][0] = tempSusceptible;
 		populationHistory[day][1] = tempInfected;
 		populationHistory[day][2] = tempRecovered;
-
+		dailyNewInfections[day] = tempInfected - prevInfected;
+		dailyRecoveries[day] = tempRecovered - prevRecovered;
 	}
 	else {
 		std::cout << "Simulation error. Wrong population\n";
@@ -208,4 +235,33 @@ void modifyParameters(double& infectionRate, double& recoveryRate) {
 
 	std::cout << "Parameters updated successfully\n";
 
+}
+void showSimulationHistory(
+	int populationHistory[MAX_DAYS][3],
+	int dailyNewInfections[MAX_DAYS],
+	int dailyRecoveries[MAX_DAYS],
+	int day
+) {
+	const int label_w = 25;
+	const int value_w = 4;
+	std::cout
+		<< "\nPopulation history:\n";
+	for (int i = 0; i <= day; ++i) {
+		std::cout << "day " << i << ": \n";
+		std::cout
+			<<  std::left << std::setw(label_w) << "\tSuspectible: "
+			<< std::right << std::setw(value_w) << populationHistory[i][0] 
+			<< "\n";
+		std::cout 
+			<< std::left << std::setw(label_w) << "\tInfected: "
+			<< std::right << std::setw(value_w) << populationHistory[i][1] << " | "
+			<< std::right << std::setw(value_w) << dailyNewInfections[i]
+			<< "\n";
+		std::cout
+			<< std::left << std::setw(label_w) << "\tRecovered: "
+			<< std::right << std::setw(value_w) << populationHistory[i][2] << " | "
+			<< std::right << std::setw(value_w) << dailyRecoveries[i]
+			<< "\n\n";
+	}
+	std::cout << "\n";
 }

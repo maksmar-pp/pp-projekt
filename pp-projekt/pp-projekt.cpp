@@ -8,6 +8,7 @@
 #include <concepts>
 #include <cmath>
 #include <iomanip>
+#include <functional>
 #include <algorithm>
 
 
@@ -41,8 +42,27 @@ T input(std::string_view prompt, std::string_view errorMessage = "Wrong data. Tr
 
 
 const int MAX_DAYS = 101;
+struct SimulationState {
+	int day = 0;
+	int suspectible = 80;
+	int recovered = 10;
+	int infected = 10;
+};
+struct ModelParameters {
+	double infectionRate = 0.20;
+	double recoveryRate = 0.20;
+};
 
+struct SimulationHistory {
+	int populationHistory[MAX_DAYS][3] = {};
+	int dailyNewInfections[MAX_DAYS] = {};
+	int dailyRecoveries[MAX_DAYS] = {};
+};
 
+struct MenuItem {
+	std::string_view label;
+	std::function<bool()> action;
+};
 
 void showPopulation(int day, int susceptible, int infected, int recovered);
 
@@ -76,6 +96,10 @@ int main()
 		"Show simulation history",
 		"Exit",
 	};
+
+	//const MenuItem m[] = {
+	//	{"Simulate next day", [&] {}}
+	//};
 	const int menu_size = sizeof(menu) / sizeof(menu[0]);
 
 	int susceptible = 80;
@@ -173,6 +197,10 @@ void simulateDay(
 	int dailyNewInfections[MAX_DAYS],
 	int dailyRecoveries[MAX_DAYS]
 ) {
+	if (day >= MAX_DAYS - 1) {
+		std::cout << "Simulation error; Max days \n";
+		return;
+	}
 	const int prevInfected = infected;
 	const int prevSusceptible = susceptible;
 	const int prevRecovered = recovered;
@@ -205,12 +233,8 @@ void simulateDay(
 	}
 }
 bool checkPopulation(int susceptalbe, int infected, int recovered) {
-	if ((susceptalbe + infected + recovered) != 100)
-		return false;
-	if (susceptalbe < 0 || infected < 0 || recovered < 0)
-		return false;
-
-	return true;
+	return (susceptalbe >= 0 && infected >= 0 && recovered >= 0)
+		&& ((susceptalbe + infected + recovered) == 100);
 }
 
 void modifyParameters(double& infectionRate, double& recoveryRate) {

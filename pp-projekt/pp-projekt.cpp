@@ -153,10 +153,12 @@ int showMenu(const std::string menu[], int size) {
 
 
 	std::cout << "\n===MENU===\n";
+
+	const int num_w = 4;
 	for (int i = 0; i < size; ++i) {
-		std::cout << i + 1 << ". " << menu[i] << "\n";
+		std::cout <<std::right << std::setw(num_w) << i + 1 << ". " << std::left << menu[i] << "\n";
 	}
-	return input<int>("Your choice: ", "", [size](int choice) {
+	return input<int>("Your choice [1-"+std::to_string(size) + "]: ", "", [size](int choice) {
 		return choice >= 1 &&  choice <= size;
 	});
 
@@ -194,8 +196,8 @@ void simulateDay(
 		populationHistory[day][0] = tempSusceptible;
 		populationHistory[day][1] = tempInfected;
 		populationHistory[day][2] = tempRecovered;
-		dailyNewInfections[day] = tempInfected - prevInfected;
-		dailyRecoveries[day] = tempRecovered - prevRecovered;
+		dailyNewInfections[day - 1] = tempInfected - prevInfected;
+		dailyRecoveries[day - 1] = tempRecovered - prevRecovered;
 	}
 	else {
 		std::cout << "Simulation error. Wrong population\n";
@@ -242,26 +244,29 @@ void showSimulationHistory(
 	int dailyRecoveries[MAX_DAYS],
 	int day
 ) {
-	const int label_w = 25;
-	const int value_w = 4;
+	const int day_w = 6, value_w = 11, diff_w = 10;
 	std::cout
 		<< "\nPopulation history:\n";
+
+	std::cout << std::left
+		<< std::setw(day_w) << "Day" << " | "
+		<< std::setw(value_w) << "Suspectible" << " | "
+		<< std::setw(value_w) << "Infected" << " | "
+		<< std::setw(value_w) << "Recovered" << " | "
+		<< std::setw(diff_w) << "+Infected" << " | "
+		<< std::setw(diff_w) << "+Recovered"
+		<< "\n";
+
+
 	for (int i = 0; i <= day; ++i) {
-		std::cout << "day " << i << ": \n";
-		std::cout
-			<<  std::left << std::setw(label_w) << "\tSuspectible: "
-			<< std::right << std::setw(value_w) << populationHistory[i][0] 
+		std::cout << std::right
+			<< std::setw(day_w) << i << " | "
+			<< std::setw(value_w) << populationHistory[i][0] << " | "
+			<< std::setw(value_w) << populationHistory[i][1] << " | "
+			<< std::setw(value_w) << populationHistory[i][2] << " | "
+			<< std::setw(diff_w) << (i == 0 ? " - " : std::to_string(dailyNewInfections[i - 1])) << " | "
+			<< std::setw(diff_w) << (i == 0 ? " - " : std::to_string(dailyRecoveries[i - 1]))
 			<< "\n";
-		std::cout 
-			<< std::left << std::setw(label_w) << "\tInfected: "
-			<< std::right << std::setw(value_w) << populationHistory[i][1] << " | "
-			<< std::right << std::setw(value_w) << dailyNewInfections[i]
-			<< "\n";
-		std::cout
-			<< std::left << std::setw(label_w) << "\tRecovered: "
-			<< std::right << std::setw(value_w) << populationHistory[i][2] << " | "
-			<< std::right << std::setw(value_w) << dailyRecoveries[i]
-			<< "\n\n";
 	}
 	std::cout << "\n";
 }
